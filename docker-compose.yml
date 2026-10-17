@@ -1,0 +1,49 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: opsflow
+      POSTGRES_USER: opsflow
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-opsflow-local-password}
+    ports:
+      - "5432:5432"
+    volumes:
+      - opsflow_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U opsflow -d opsflow"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  api:
+    build: ./backend
+    environment:
+      DATABASE_URL: postgresql+psycopg://opsflow:${POSTGRES_PASSWORD:-opsflow-local-password}@db:5432/opsflow
+      SECRET_KEY: ${SECRET_KEY:-replace-this-local-secret-before-deployment}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173}
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+  worker:
+    build: ./backend
+    command: ["python", "-m", "app.worker"]
+    environment:
+      DATABASE_URL: postgresql+psycopg://opsflow:${POSTGRES_PASSWORD:-opsflow-local-password}@db:5432/opsflow
+      SECRET_KEY: ${SECRET_KEY:-replace-this-local-secret-before-deployment}
+      OUTBOX_MAX_ATTEMPTS: 5
+    depends_on:
+      db:
+        condition: service_healthy
+      api:
+        condition: service_started
+  frontend:
+    build: ./frontend
+    environment:
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:8000}
+    ports:
+      - "5173:5173"
+    depends_on:
+      - api
+volumes:
+  opsflow_pgdata:
