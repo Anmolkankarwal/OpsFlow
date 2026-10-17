@@ -1,10 +1,10 @@
-# OpsFlow — Team Operations Hub
+# ⚡ OpsFlow — Team Operations Hub
 
-OpsFlow is a full-stack internal work-management app for teams to create, assign, track, and resolve operational work items. It includes team-scoped roles, a server-filtered dashboard, a controlled workflow, append-only activity history, comments, optimistic version checks, idempotent create requests, and a PostgreSQL outbox worker.
+### From operational chaos to organized execution.
 
-> **Challenge context:** Newtonite Software Engineering Challenge — “Operations Under Pressure”. Built as an individual learning/demo project. Review every implementation decision and be ready to explain it in the live discussion.
+**OpsFlow** is a full-stack work management platform designed to help teams create, assign, track, and resolve operational tasks with confidence. Built for the *Newtonite Software Engineering Challenge — Operations Under Pressure*, it focuses on reliable workflows, team-level authorization, concurrent updates, and transparent activity history.
 
-## Features
+> 🚀 **The goal:** Build a system that doesn't just manage tasks, but handles the real-world problems that make operational work difficult.
 
 - Login with seeded demo accounts; signed bearer tokens expire after 12 hours.
 - Team-scoped roles: Viewer, Member, Lead, Admin. Authorization is checked by the API, not only in the UI.
@@ -17,88 +17,294 @@ OpsFlow is a full-stack internal work-management app for teams to create, assign
 - Activity events are written in the same transaction as the item change; comments are also tracked.
 - Transactional outbox table and polling worker with retry cap. Current handler logs the event instead of sending a real notification.
 - Automated API tests for idempotency, simultaneous claims/updates, workflow rules, team authorization, inactive users, viewer permissions and approval scoping.
+<p align="center">
 
-## Run with Docker Compose (recommended)
+  <img src="https://img.shields.io/badge/Status-Working%20MVP-success?style=for-the-badge" alt="Working MVP" />
+  <img src="https://img.shields.io/badge/Backend-FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white" alt="FastAPI" />
+  <img src="https://img.shields.io/badge/Frontend-React-61DAFB?style=for-the-badge&logo=react&logoColor=black" alt="React" />
+  <img src="https://img.shields.io/badge/Database-PostgreSQL-4169E1?style=for-the-badge&logo=postgresql&logoColor=white" alt="PostgreSQL" />
+  <img src="https://img.shields.io/badge/Containerized-Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white" alt="Docker" />
 
-Prerequisites: Docker Desktop with Compose enabled.
+</p>
 
-1. From the extracted `opsflow` folder, create the local environment file and set local secrets:
+---
 
-   ```powershell
-   Copy-Item .env.example .env
-   notepad .env
-   ```
+## 📌 Table of Contents
 
-2. From that same folder run:
+- [🎯 Why OpsFlow?](#-why-opsflow)
+- [✨ Key Features](#-key-features)
+- [🔄 Workflow](#-workflow)
+- [🏗️ Architecture](#️-architecture)
+- [🛠️ Technology Stack](#️-technology-stack)
+- [🚀 Getting Started](#-getting-started)
+- [🔐 Demo Accounts](#-demo-accounts)
+- [🔌 API Overview](#-api-overview)
+- [🧪 Testing](#-testing)
+- [🧠 Engineering Decisions](#-engineering-decisions)
+- [⚠️ Known Limitations](#️-known-limitations)
+- [🎬 Suggested Demo](#-suggested-demo)
 
-   ```powershell
-   docker compose up --build
-   ```
+---
 
-3. Open the frontend at `http://localhost:5173` and API docs at `http://localhost:8000/docs`.
-4. Load demo data once by opening Swagger (`/docs`) and calling `POST /api/dev/seed`, or use PowerShell:
+## 🎯 Why OpsFlow?
 
-   ```powershell
-   Invoke-RestMethod -Method Post -Uri http://localhost:8000/api/dev/seed
-   ```
+As organizations grow, operational work often becomes scattered across chats, emails, spreadsheets, and informal conversations.
 
-   If the database already contains data, the endpoint returns “Seed data already exists”.
+This creates challenges:
 
-## Run locally without Docker
+- 🔎 **Low visibility:** Important requests get buried in conversations.
+- 👥 **Unclear ownership:** Multiple people may start working on the same task.
+- 🔒 **Permission risks:** Not everyone should be allowed to perform every action.
+- 🔄 **Conflicting updates:** Users may overwrite newer changes with stale information.
+- 🧾 **Limited accountability:** It can be difficult to understand who changed what and why.
 
-Prerequisites: Python 3.12+, Node.js 20+, and PostgreSQL 16 (or use SQLite for local API development).
+**OpsFlow brings these workflows into one place** with explicit ownership, controlled transitions, server-side authorization, and traceable activity.
 
-Backend, from `backend/`:
+## ✨ Key Features
 
-```powershell
-py -m venv .venv
-.\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-$env:DATABASE_URL = "sqlite:///./opsflow.db"
-$env:SECRET_KEY = "local-development-secret-change-me"
-uvicorn app.main:app --reload
+### 📋 Work Management
+- Create, assign, update, search, and resolve operational work items.
+- Filter items by status, priority, team, and ownership.
+- Use server-side pagination instead of loading the entire dataset into the browser.
+- View work assigned to you, urgent unassigned items, and approvals awaiting your attention.
+
+### 🛡️ Team-Based Authorization
+- Four roles: **Viewer, Member, Lead, and Admin**.
+- Enforce permissions at the API level, not merely through frontend controls.
+- Restrict approval actions to authorized Leads and Admins.
+- Validate team access and inactive-user restrictions.
+
+### 🔄 Controlled Workflow
+- Enforce valid work-item state transitions.
+- Require Lead/Admin approval before moving an item from `Awaiting Approval` to `Resolved`.
+- Prevent unauthorized transitions through backend validation.
+
+### ⚡ Concurrency & Reliability
+- **Atomic claiming:** Prevent multiple users from successfully claiming the same unassigned item.
+- **Optimistic concurrency:** Use version checks to reject stale updates with HTTP `409 Conflict`.
+- **Idempotent creation:** Support `Idempotency-Key` to prevent duplicate items when a create request is retried.
+- **Transactional activity history:** Store important activity events in the same transaction as the corresponding item change.
+
+### 💬 Collaboration & Auditability
+- Add comments to work items.
+- Track important changes through an append-only activity history.
+- Inspect previous actions to understand how a task evolved.
+
+### 🔔 Asynchronous Processing
+- Use a PostgreSQL transactional outbox to record events for background processing.
+- Process pending events through a polling worker with a bounded retry policy.
+- Keep secondary processing separate from the primary request.
+
+> ℹ️ The current worker logs simulated notifications. It does not send real emails or push notifications.
+
+---
+
+## 🔄 Workflow
+
+OpsFlow uses a controlled workflow to keep operational work organized.
+
+```text
+        ┌──────────┐
+        │   Open   │
+        └────┬─────┘
+             ▼
+      ┌─────────────┐
+      │ In Progress │
+      └──────┬──────┘
+             ▼
+   ┌───────────────────┐
+   │ Awaiting Approval │
+   └─────────┬─────────┘
+             │ Lead / Admin approval
+             ▼
+       ┌──────────┐
+       │ Resolved │
+       └────┬─────┘
+            ▼
+       ┌──────────┐
+       │  Closed  │
+       └──────────┘
 ```
 
-In a second terminal, call `POST http://localhost:8000/api/dev/seed`.
+Transitions are validated by the API, so users cannot bypass workflow rules simply by modifying the frontend.
 
-Frontend, from `frontend/`:
+## 🏗️ Architecture
 
-```powershell
-npm ci
-$env:VITE_API_URL = "http://localhost:8000"
-npm run dev
+```text
+┌─────────────────────┐
+│   React Frontend    │
+│ Dashboard & Work UI │
+└──────────┬──────────┘
+           │ HTTP / Bearer Token
+           ▼
+┌─────────────────────┐
+│    FastAPI Backend  │
+│ Auth • Permissions  │
+│ Workflow • Versions │
+└──────────┬──────────┘
+           │
+           ▼
+┌─────────────────────┐
+│     PostgreSQL      │
+│ Work Items • Teams  │
+│ Activity • Outbox   │
+└──────────┬──────────┘
+           │ Pending Events
+           ▼
+┌─────────────────────┐
+│ Background Worker   │
+│ Poll • Process      │
+│ Retry • Log         │
+└─────────────────────┘
 ```
 
-Open `http://localhost:5173`.
+### 🔍 Important Design Choices
 
-## Demo accounts
+| Concern | Approach |
+|---|---|
+| Authorization | Team-scoped role checks in the API |
+| Concurrent edits | Version-based optimistic concurrency |
+| Task claiming | Atomic conditional database update |
+| Duplicate requests | Idempotency keys on item creation |
+| Audit history | Activity events persisted transactionally |
+| Background work | PostgreSQL transactional outbox |
+| Data retrieval | Server-side search, filters, and pagination |
 
-| Role | Email | Password | Team access |
+---
+
+## 🛠️ Technology Stack
+
+| Layer | Technology |
+|---|---|
+| Frontend | React, TypeScript, Vite |
+| Backend | Python, FastAPI |
+| Database | PostgreSQL 16 |
+| Background processing | Python worker, PostgreSQL outbox |
+| Containerization | Docker, Docker Compose |
+| API documentation | OpenAPI / Swagger UI |
+| Testing | Pytest, SQLite test database |
+
+---
+
+## 🚀 Getting Started
+
+The quickest way to run OpsFlow is with Docker Compose.
+
+### Prerequisites
+
+- Docker Desktop
+- Docker Compose enabled
+- Git
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/Anmolkankarwal/OpsFlow.git
+cd OpsFlow
+```
+
+### 2. Configure environment variables
+
+In PowerShell:
+
+```powershell
+Copy-Item .env.example .env
+notepad .env
+```
+
+Update the local environment variables as required by the project configuration.
+
+> 🔐 Keep `.env` private. Never commit passwords, API keys, or production credentials.
+
+### 3. Build and start the application
+
+```powershell
+docker compose up --build
+```
+
+Docker Compose starts the frontend, API, database, and background worker.
+
+### 4. Initialize demo data
+
+In a separate PowerShell terminal:
+
+```powershell
+Invoke-RestMethod -Method Post -Uri http://localhost:8000/api/dev/seed
+```
+
+The seed endpoint creates demo data if the database is empty. It may report that seed data already exists if initialization has already happened.
+
+### 5. Open the application
+
+| Service | URL |
+|---|---|
+| 🖥️ Frontend | http://localhost:5173 |
+| 📚 API Documentation | http://localhost:8000/docs |
+| ❤️ Health Check | http://localhost:8000/health |
+
+---
+
+## 🔐 Demo Accounts
+
+Use the following accounts to explore role-based behavior locally.
+
+| Role | Email | Password | Access |
 |---|---|---|---|
-| Admin | `admin@opsflow.local` | `Admin123!` | All teams |
-| Lead | `lead@opsflow.local` | `Lead123!` | Operations |
-| Member | `member@opsflow.local` | `Member123!` | Operations |
-| Viewer | `viewer@opsflow.local` | `Viewer123!` | Operations (read-only) |
-| Other-team member | `other@opsflow.local` | `Other123!` | Customer Support |
+| 👑 Admin | `admin@opsflow.local` | `Admin123!` | All teams |
+| 🧭 Lead | `lead@opsflow.local` | `Lead123!` | Operations |
+| 👤 Member | `member@opsflow.local` | `Member123!` | Operations |
+| 👁️ Viewer | `viewer@opsflow.local` | `Viewer123!` | Operations, read-only |
+| 👥 Other-team Member | `other@opsflow.local` | `Other123!` | Customer Support |
 
-These are local demo credentials only. Do not use them in production. The seed endpoint is enabled by default for the challenge; set `DISABLE_DEV_SEED=1` on the API to disable it.
+These are **local demo credentials only**. Never use them in production.
 
-## API overview
+The development seed endpoint is enabled by default for this challenge. Disable it outside local/demo use by configuring `DISABLE_DEV_SEED=1` for the API.
 
-- `POST /api/auth/login`, `GET /api/auth/me`
-- `GET /api/teams`, `GET /api/dashboard`
-- `POST /api/items` (supports `Idempotency-Key`)
-- `GET /api/items?q=&status=&priority=&team_id=&mine=&unassigned=&awaiting_my_approval=&page=&page_size=`
-- `GET /api/items/{id}`, `PATCH /api/items/{id}` (requires `version`)
-- `POST /api/items/{id}/claim`
-- `POST /api/items/{id}/transition` (requires `version`)
-- `GET /api/items/{id}/activity`, `GET/POST /api/items/{id}/comments`
-- `GET /api/admin/outbox` (Admin only)
-- `GET /health`
+---
 
-## Run tests
+## 🔌 API Overview
 
-From `backend/`:
+| Method | Endpoint | Purpose |
+|---|---|---|
+| `POST` | `/api/auth/login` | Authenticate a user |
+| `GET` | `/api/auth/me` | Retrieve current-user information |
+| `GET` | `/api/teams` | List accessible teams |
+| `GET` | `/api/dashboard` | Retrieve dashboard information |
+| `POST` | `/api/items` | Create a work item; supports idempotency |
+| `GET` | `/api/items` | Search, filter, and paginate items |
+| `GET` | `/api/items/{id}` | Retrieve a work item |
+| `PATCH` | `/api/items/{id}` | Update an item with a version check |
+| `POST` | `/api/items/{id}/claim` | Atomically claim an unassigned item |
+| `POST` | `/api/items/{id}/transition` | Validate and apply a workflow transition |
+| `GET` | `/api/items/{id}/activity` | Retrieve item activity history |
+| `GET` / `POST` | `/api/items/{id}/comments` | Read or add comments |
+| `GET` | `/api/admin/outbox` | Inspect outbox events; Admin only |
+| `GET` | `/health` | Check API health |
+
+For interactive API exploration, open [Swagger UI](http://localhost:8000/docs) after starting the application.
+
+---
+
+## 🧪 Testing
+
+OpsFlow includes automated API tests focused on correctness and authorization.
+
+### Current test coverage
+
+- ✅ Idempotent item creation
+- ✅ Simultaneous item claims
+- ✅ Concurrent and stale updates
+- ✅ Workflow transition validation
+- ✅ Team-scoped authorization
+- ✅ Inactive-user restrictions
+- ✅ Viewer permission enforcement
+- ✅ Approval access scoping
+
+The current suite contains **14 API tests**, using a dedicated SQLite test database with tables reset between tests.
+
+### Run backend tests
+
+From the `backend/` directory:
 
 ```powershell
 py -m venv .venv
@@ -108,32 +314,88 @@ python -m pytest -q
 ```
 
 The suite currently has 20 API tests, including approval/rejection authorization and activity history, plus synchronized concurrent claims and updates. Tests use a dedicated SQLite test database and reset its tables between tests. The app's production database configuration is independent. Run the frontend production build from `frontend/` with `npm ci` followed by `npm run build`.
+### Build the frontend
 
-## Engineering decisions
+From the `frontend/` directory:
 
-See [`ENGINEERING_DECISIONS.md`](ENGINEERING_DECISIONS.md) for context, alternatives, choices, and trade-offs.
+```powershell
+npm ci
+npm run build
+```
 
-See [`REQUIREMENTS_COMPLIANCE.md`](REQUIREMENTS_COMPLIANCE.md) for the current requirement-by-requirement status and verification record.
+> 📌 The test count and behaviors above describe the current project documentation. Run the commands to verify the current result in your environment.
 
-## Known limitations
+---
 
-- The seed endpoint is intended only for local/demo use and must be disabled in production.
-- Authentication is a compact custom HMAC bearer-token implementation for this bounded demo; use a vetted OAuth2/OIDC provider and a maintained JWT library in a production service.
-- The outbox worker is a simple single-process poller. It logs a simulated notification; it does not send email or push messages. Multiple workers need PostgreSQL `FOR UPDATE SKIP LOCKED`, lease recovery for stuck `processing` jobs, and monitoring.
-- The current worker has a bounded retry policy but does not yet implement durable exponential-backoff scheduling in the database.
-- ORM schema is created on application startup for this MVP; formal Alembic migrations should be added before production use.
-- There is no user-management UI, password-reset flow, signup, SSO, file attachments, real-time WebSockets, or mobile client, intentionally matching the challenge's scope.
-- The dashboard stat cards count the currently loaded page for some status metrics, not a separate all-record aggregate endpoint.
-- Seed data is small; pagination is server-side, but a large-scale load benchmark has not been run.
-- CSS imports Google Fonts from the network; a disconnected demo falls back to system sans-serif fonts.
-- The app has not been security-audited or tested under production concurrency/load. Review and test it before deployment.
+## 🧠 Engineering Decisions
 
-## Suggested demo flow (3–5 minutes)
+This project emphasizes engineering judgment over feature count.
 
-1. Sign in as Admin and show the dashboard/filtering.
-2. Create a work item and point out the generated `Idempotency-Key`.
-3. Open an item and show its activity history; add a comment.
-4. Claim an unassigned item as Member; explain that the API uses a conditional update.
-5. Attempt a stale edit from an old version (or demonstrate through `/docs`) and show `409`.
-6. Show a forbidden Viewer mutation and a Lead approval transition.
-7. Explain the outbox worker, tests, trade-offs, and known limitations honestly.
+The main design decisions include:
+
+1. **Authorization at the API level** — prevent unauthorized operations independently of frontend visibility.
+2. **Optimistic concurrency** — detect stale edits instead of silently overwriting newer data.
+3. **Atomic claiming and idempotency** — handle repeated requests and competing users deliberately.
+4. **Transactional activity and outbox records** — keep important event records consistent with database changes.
+5. **Bounded asynchronous processing** — support background work while documenting retry and recovery limitations.
+
+For the rationale, alternatives, and trade-offs, see [`ENGINEERING_DECISIONS.md`](ENGINEERING_DECISIONS.md).
+
+For the requirement-by-requirement status, see [`REQUIREMENTS_COMPLIANCE.md`](REQUIREMENTS_COMPLIANCE.md).
+
+---
+
+## ⚠️ Known Limitations
+
+OpsFlow is a working MVP and learning/demo project, not a production-hardened enterprise service.
+
+- 🔐 Authentication uses a compact custom HMAC bearer-token implementation. Production deployments should use a vetted identity provider and maintained authentication libraries.
+- 🔔 Notifications are simulated through logging; real email and push delivery are not implemented.
+- 🔁 The worker uses simple polling and bounded retries. Multi-worker locking, lease recovery, monitoring, and durable exponential-backoff scheduling remain future improvements.
+- 🗃️ ORM tables are created at application startup. Formal Alembic migrations are not yet implemented.
+- 📊 Some dashboard status counts reflect the currently loaded page rather than a separate aggregate across all records.
+- 📈 Server-side pagination is implemented, but large-scale load benchmarking has not been performed.
+- 👥 Signup, password reset, SSO, user-management UI, file attachments, real-time WebSockets, and mobile support are outside the current scope.
+- 🌐 Google Fonts are loaded over the network, with system-font fallbacks.
+- 🛡️ The application has not undergone a formal security audit or production-scale concurrency test.
+
+These limitations are documented intentionally to make the current scope and future engineering work clear.
+
+---
+
+## 🎬 Suggested Demo — 3 to 5 Minutes
+
+Want to understand OpsFlow quickly? Follow this walkthrough:
+
+1. 👑 **Sign in as Admin** and explore the dashboard and filters.
+2. ➕ **Create a work item** and explain how `Idempotency-Key` helps with retries.
+3. 🧾 **Open the activity timeline** and add a comment.
+4. 👤 **Claim an unassigned task as Member** and explain the atomic database update.
+5. ⚡ **Demonstrate a stale update** and inspect the `409 Conflict` response.
+6. 🛡️ **Try a forbidden Viewer action** and show the API authorization behavior.
+7. 🧭 **Approve a workflow transition as Lead** and explain the role restrictions.
+8. 🔔 **Explain the outbox worker, automated tests, trade-offs, and known limitations.**
+
+---
+
+## 🚧 Future Improvements
+
+Potential next steps include:
+
+- 📬 Real notification delivery with reliable retry scheduling.
+- 📊 Dedicated dashboard aggregate endpoints.
+- 🧰 Database migrations and stronger integration-test coverage.
+- 🔒 Production-grade identity and session management.
+- 📈 Load testing and performance monitoring.
+- 🔄 Multi-worker outbox processing with safe job claiming and recovery.
+
+---
+
+## 👨‍💻 Project Context
+
+OpsFlow was built as an individual learning/demo project for the **Newtonite Software Engineering Challenge — Operations Under Pressure**.
+
+The implementation is designed to demonstrate practical reasoning around authorization, concurrency, workflow correctness, auditability, and maintainability within a time-constrained engineering exercise.
+
+**Built with a focus on reliable execution, not just task tracking.** ⚡
+
