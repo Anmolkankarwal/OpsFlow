@@ -122,6 +122,45 @@ def test_viewer_cannot_modify_and_lead_can_approve(client):
     approval=next(i for i in client.get("/api/items",headers=headers(lead)).json()["items"] if i["status"]=="Awaiting Approval")
     response=client.post(f"/api/items/{approval['id']}/transition",json={"target_status":"Resolved","version":approval["version"]},headers=headers(lead))
     assert response.status_code==200
+    assert response.json()["status"]=="Resolved"
+    events=client.get(f"/api/items/{approval['id']}/activity",headers=headers(lead)).json()
+    assert events[0]["action"]=="approval_approved"
+
+def test_admin_can_approve_eligible_item(client):
+    admin=token(client)
+    approval=next(i for i in client.get("/api/items",headers=headers(admin)).json()["items"] if i["status"]=="Awaiting Approval")
+    response=client.post(f"/api/items/{approval['id']}/transition",json={"target_status":"Resolved","version":approval["version"]},headers=headers(admin))
+    assert response.status_code==200, response.text
+    assert response.json()["status"]=="Resolved"
+    events=client.get(f"/api/items/{approval['id']}/activity",headers=headers(admin)).json()
+    assert events[0]["action"]=="approval_approved"
+
+def test_member_cannot_approve_or_reject_by_direct_transition(client):
+    member=token(client,"member@opsflow.local","Member123!")
+    item=next(i for i in client.get("/api/items",headers=headers(member)).json()["items"] if i["status"]=="Awaiting Approval")
+    for target in ("Resolved","In Progress"):
+        denied=client.post(f"/api/items/{item['id']}/transition",json={"target_status":target,"version":item["version"]},headers=headers(member))
+        assert denied.status_code==403, denied.text
+    current=client.get(f"/api/items/{item['id']}",headers=headers(member)).json()
+    assert current["status"]=="Awaiting Approval"
+    events=client.get(f"/api/items/{item['id']}/activity",headers=headers(member)).json()
+    assert not any(event["action"].startswith("approval_") for event in events)
+
+def test_lead_can_reject_eligible_item_with_audit_event(client):
+    lead=token(client,"lead@opsflow.local","Lead123!")
+    item=next(i for i in client.get("/api/items",headers=headers(lead)).json()["items"] if i["status"]=="Awaiting Approval")
+    response=client.post(f"/api/items/{item['id']}/transition",json={"target_status":"In Progress","version":item["version"]},headers=headers(lead))
+    assert response.status_code==200, response.text
+    assert response.json()["status"]=="In Progress"
+    events=client.get(f"/api/items/{item['id']}/activity",headers=headers(lead)).json()
+    assert events[0]["action"]=="approval_rejected"
+    assert "returned to In Progress" in events[0]["details"]
+
+def test_approval_decision_is_rejected_when_item_is_not_awaiting_approval(client):
+    lead=token(client,"lead@opsflow.local","Lead123!")
+    item=next(i for i in client.get("/api/items",headers=headers(lead)).json()["items"] if i["status"]=="Open")
+    response=client.post(f"/api/items/{item['id']}/transition",json={"target_status":"Resolved","version":item["version"]},headers=headers(lead))
+    assert response.status_code==400
 
 def test_member_cannot_approve_or_see_approval_queue(client):
     member=token(client,"member@opsflow.local","Member123!")

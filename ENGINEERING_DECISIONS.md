@@ -24,8 +24,8 @@
 ## 4. Controlled workflow and approval queue
 
 **Context:** Work needs to move through investigation, review, resolution, and closure without skipping required steps.  
-**Choice:** The server permits `Open → In Progress`, `In Progress → Awaiting Approval` or back to `Open`, `Awaiting Approval → Resolved` or back to `In Progress`, and `Resolved → Closed` or back to `In Progress`. Only Lead/Admin memberships in the item's team can approve `Awaiting Approval → Resolved`. The approval queue is scoped to teams where the current user has one of those roles.  
-**Trade-off:** Rework can return an item to active work, while direct jumps remain rejected. The workflow is intentionally small and should be changed through explicit server rules and tests.
+**Choice:** The server permits `Open → In Progress`, `In Progress → Awaiting Approval` or back to `Open`, `Awaiting Approval → Resolved` or back to `In Progress`, and `Resolved → Closed` or back to `In Progress`. A Lead/Admin member of the item's team must make either decision at the approval gate: Approve moves the item to `Resolved`; Reject returns it to `In Progress`. The API enforces both decisions regardless of client, writes distinct approval activity events, and the detail panel shows explicit review actions only to eligible team roles. The approval queue is scoped to teams where the current user has one of those roles.
+**Trade-off:** Rework can return an item to active work, while direct jumps remain rejected. Treating rejection as a return to `In Progress` avoids adding another workflow state; the workflow is intentionally small and should be changed through explicit server rules and tests.
 
 ## 5. Idempotency for retried create requests
 

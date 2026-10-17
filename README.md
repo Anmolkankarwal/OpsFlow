@@ -6,6 +6,17 @@
 
 > 🚀 **The goal:** Build a system that doesn't just manage tasks, but handles the real-world problems that make operational work difficult.
 
+- Login with seeded demo accounts; signed bearer tokens expire after 12 hours.
+- Team-scoped roles: Viewer, Member, Lead, Admin. Authorization is checked by the API, not only in the UI.
+- Create and search/filter work items, with server-side pagination.
+- Dashboard views: Assigned to me, Unassigned urgent, Awaiting my approval (limited to teams where the user is a Lead/Admin).
+- Workflow: `Open → In Progress → Awaiting Approval → Resolved → Closed`; only a Lead/Admin in the item's team can approve (to `Resolved`) or reject (back to `In Progress`). The detail panel exposes explicit review actions, and the API records each decision in activity history.
+- Atomic claim operation; only one user can claim an unassigned item.
+- Optimistic concurrency via a `version` field and HTTP `409 Conflict` for stale edits/transitions.
+- `Idempotency-Key` support on create requests.
+- Activity events are written in the same transaction as the item change; comments are also tracked.
+- Transactional outbox table and polling worker with retry cap. Current handler logs the event instead of sending a real notification.
+- Automated API tests for idempotency, simultaneous claims/updates, workflow rules, team authorization, inactive users, viewer permissions and approval scoping.
 <p align="center">
 
   <img src="https://img.shields.io/badge/Status-Working%20MVP-success?style=for-the-badge" alt="Working MVP" />
@@ -302,6 +313,7 @@ pip install -r requirements.txt
 python -m pytest -q
 ```
 
+The suite currently has 20 API tests, including approval/rejection authorization and activity history, plus synchronized concurrent claims and updates. Tests use a dedicated SQLite test database and reset its tables between tests. The app's production database configuration is independent. Run the frontend production build from `frontend/` with `npm ci` followed by `npm run build`.
 ### Build the frontend
 
 From the `frontend/` directory:
