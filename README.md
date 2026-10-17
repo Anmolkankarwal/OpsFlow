@@ -158,6 +158,52 @@ Transitions are validated by the API, so users cannot bypass workflow rules simp
 └─────────────────────┘
 ```
 
+
+## System Architecture
+
+The following diagram shows the main components of OpsFlow and how they interact.
+
+```mermaid
+flowchart TB
+    U[User: Member / Lead / Admin]
+    FE[React + TypeScript Frontend]
+    API[FastAPI REST API]
+    AUTH[Authentication and Authorization]
+    WF[Workflow Validation and Version Checks]
+    DB[(PostgreSQL)]
+    ACT[Activity History]
+    OUT[Outbox Events]
+    WORKER[Background Worker]
+
+    U <--> FE
+    FE <--> API
+    API --> AUTH
+    AUTH --> WF
+    WF <--> DB
+    WF --> ACT
+    ACT --> DB
+    WF --> OUT
+    OUT --> DB
+    WORKER <--> DB
+```
+
+## Request Data Flow
+
+```mermaid
+flowchart TD
+    A[User action] --> B[React frontend]
+    B --> C[FastAPI endpoint]
+    C --> D[Authenticate and authorize]
+    D --> E[Validate workflow and version]
+    E --> F[(PostgreSQL transaction)]
+    F --> G[Persist work item and activity]
+    G --> H[Return API response]
+    H --> I[Update frontend]
+    F --> J[Outbox event]
+    J --> K[Background worker]
+```
+
+
 ### 🔍 Important Design Choices
 
 | Concern | Approach |
