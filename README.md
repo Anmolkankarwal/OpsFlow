@@ -10,7 +10,7 @@ OpsFlow is a full-stack internal work-management app for teams to create, assign
 - Team-scoped roles: Viewer, Member, Lead, Admin. Authorization is checked by the API, not only in the UI.
 - Create and search/filter work items, with server-side pagination.
 - Dashboard views: Assigned to me, Unassigned urgent, Awaiting my approval (limited to teams where the user is a Lead/Admin).
-- Workflow: `Open → In Progress → Awaiting Approval → Resolved → Closed`; only a Lead/Admin can approve `Awaiting Approval → Resolved`.
+- Workflow: `Open → In Progress → Awaiting Approval → Resolved → Closed`; only a Lead/Admin in the item's team can approve (to `Resolved`) or reject (back to `In Progress`). The detail panel exposes explicit review actions, and the API records each decision in activity history.
 - Atomic claim operation; only one user can claim an unassigned item.
 - Optimistic concurrency via a `version` field and HTTP `409 Conflict` for stale edits/transitions.
 - `Idempotency-Key` support on create requests.
@@ -107,7 +107,7 @@ pip install -r requirements.txt
 python -m pytest -q
 ```
 
-The suite currently has 14 API tests, including synchronized concurrent claims and updates. Tests use a dedicated SQLite test database and reset its tables between tests. The app's production database configuration is independent. Run the frontend production build from `frontend/` with `npm ci` followed by `npm run build`.
+The suite currently has 20 API tests, including approval/rejection authorization and activity history, plus synchronized concurrent claims and updates. Tests use a dedicated SQLite test database and reset its tables between tests. The app's production database configuration is independent. Run the frontend production build from `frontend/` with `npm ci` followed by `npm run build`.
 
 ## Engineering decisions
 

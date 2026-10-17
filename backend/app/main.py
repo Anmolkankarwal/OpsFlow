@@ -316,14 +316,21 @@ def transition_item(item_id: int, data: TransitionIn, user: User = Depends(curre
     if item.version != data.version: raise HTTPException(409, detail={"message":"This item changed since you loaded it. Reload and try again.","current_item":item_json(item)})
     target = data.target_status.value
     if target not in ALLOWED.get(item.status,set()): raise HTTPException(400, f"Invalid workflow transition: {item.status} → {target}")
-    if item.status == WorkStatus.AWAITING_APPROVAL.value and target == WorkStatus.RESOLVED.value and m.role not in (Role.LEAD.value,Role.ADMIN.value): raise HTTPException(403,"Only a Lead or Admin can approve this item")
+    is_approval_decision = item.status == WorkStatus.AWAITING_APPROVAL.value and target in (WorkStatus.RESOLVED.value, WorkStatus.IN_PROGRESS.value)
+    if is_approval_decision and m.role not in (Role.LEAD.value,Role.ADMIN.value):
+        raise HTTPException(403,"Only a Lead or Admin can approve or reject this item")
     old=item.status; old_version=item.version; now=datetime.now(timezone.utc)
     guard=db.execute(update(WorkItem).where(WorkItem.id==item_id,WorkItem.version==data.version).values(version=WorkItem.version+1), execution_options={"synchronize_session":False})
     if guard.rowcount != 1:
         db.rollback(); latest=db.get(WorkItem,item_id)
         raise HTTPException(409,detail={"message":"This item changed since you loaded it. Reload and try again.","current_item":item_json(latest) if latest else None})
     item.status=target; item.version=old_version+1; item.updated_at=now
-    record_event(db,item,user,"status_changed",f"{old} → {target}")
+    if old == WorkStatus.AWAITING_APPROVAL.value and target == WorkStatus.RESOLVED.value:
+        record_event(db,item,user,"approval_approved",f"Approved by {user.name}")
+    elif old == WorkStatus.AWAITING_APPROVAL.value and target == WorkStatus.IN_PROGRESS.value:
+        record_event(db,item,user,"approval_rejected",f"Rejected by {user.name}; returned to In Progress")
+    else:
+        record_event(db,item,user,"status_changed",f"{old} → {target}")
     db.add(OutboxJob(event_key=f"status-{item.id}-{item.version}",payload=json.dumps({"event":"item.status_changed","item_id":item.id,"status":target})))
     db.commit(); db.refresh(item); return item
 @app.get("/api/items/{item_id}/activity", response_model=list[ActivityOut])
