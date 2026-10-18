@@ -12,7 +12,11 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship,
 from sqlalchemy.exc import IntegrityError
 
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./opsflow.db")
-SECRET_KEY = os.getenv("SECRET_KEY", "dev-only-change-this-secret-before-deployment")
+IS_PRODUCTION = os.getenv("RENDER", "").lower() == "true" or os.getenv("APP_ENV", "").lower() in {"production", "prod"}
+_configured_secret = os.getenv("SECRET_KEY")
+if IS_PRODUCTION and not _configured_secret:
+    raise RuntimeError("SECRET_KEY must be configured in production; refusing to start with a development secret.")
+SECRET_KEY = _configured_secret or "dev-only-change-this-secret-before-deployment"
 if DATABASE_URL.startswith("sqlite"):
     engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 else:
@@ -362,10 +366,18 @@ def outbox_status(user: User = Depends(current_user), db: Session = Depends(get_
     rows=db.scalars(select(OutboxJob).order_by(OutboxJob.id.desc()).limit(100)).all()
     return [{"id":r.id,"event_key":r.event_key,"payload":r.payload,"status":r.status,"attempts":r.attempts,"created_at":r.created_at.isoformat()} for r in rows]
 
+def dev_seed_disabled() -> bool:
+    """Disable public demo seeding by default on Render/production deployments."""
+    explicit = os.getenv("DISABLE_DEV_SEED")
+    if explicit is not None:
+        return explicit.strip().lower() in {"1", "true", "yes", "on"}
+    return os.getenv("RENDER", "").lower() == "true" or os.getenv("APP_ENV", "").lower() in {"production", "prod"}
+
+
 @app.post("/api/dev/seed")
 def seed_demo(db: Session = Depends(get_db)):
-    """Local demo helper. Disable by setting DISABLE_DEV_SEED=1 in production."""
-    if os.getenv("DISABLE_DEV_SEED", "0") == "1": raise HTTPException(404,"Not found")
+    """Local demo helper; disabled by default in production."""
+    if dev_seed_disabled(): raise HTTPException(404,"Not found")
     if db.scalar(select(User.id).limit(1)): return {"message":"Seed data already exists"}
     users_data=[("Aarav Admin","admin@opsflow.local","Admin123!"),("Meera Lead","lead@opsflow.local","Lead123!"),("Rohan Member","member@opsflow.local","Member123!"),("Sara Viewer","viewer@opsflow.local","Viewer123!"),("Kabir Other Team","other@opsflow.local","Other123!")]
     users=[]
