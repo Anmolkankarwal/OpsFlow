@@ -214,3 +214,16 @@ def test_concurrent_updates_reject_one_stale_version(client):
     with ThreadPoolExecutor(max_workers=2) as pool:
         results=list(pool.map(attempt_update,["Concurrent update A","Concurrent update B"]))
     assert sorted(results)==[200,409]
+
+
+def test_dev_seed_can_be_disabled_explicitly(client, monkeypatch):
+    monkeypatch.setenv("DISABLE_DEV_SEED", "1")
+    response = client.post("/api/dev/seed")
+    assert response.status_code == 404
+
+
+def test_dev_seed_is_disabled_by_default_on_render(client, monkeypatch):
+    monkeypatch.delenv("DISABLE_DEV_SEED", raising=False)
+    monkeypatch.setenv("RENDER", "true")
+    response = client.post("/api/dev/seed")
+    assert response.status_code == 404
