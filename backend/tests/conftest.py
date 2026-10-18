@@ -1,6 +1,7 @@
 import os
 os.environ["DATABASE_URL"] = "sqlite:///./test_opsflow.db"
 os.environ["SECRET_KEY"] = "test-secret-key"
+os.environ["DISABLE_DEV_SEED"] = "0"
 from fastapi.testclient import TestClient
 import pytest
 from sqlalchemy import event
