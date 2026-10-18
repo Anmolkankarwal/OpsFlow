@@ -489,3 +489,30 @@ The implementation is designed to demonstrate practical reasoning around authori
 
 **Built with a focus on reliable execution, not just task tracking.** ⚡
 
+---
+
+## 👨‍💻 Meet the Developer
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Developer-Anmol%20Kankarwal-6C5CE7?style=for-the-badge&logo=github" alt="Developer: Anmol Kankarwal"/>
+</p>
+
+<p align="center">
+  <b>Anmol Kankarwal</b><br/>
+  B.Tech CSE (Artificial Intelligence) | Galgotias University
+  <br/><br/>
+  💡 Building practical software solutions with a focus on reliability, clean architecture, and real-world engineering challenges.
+  <br/><br/>
+  <a href="https://github.com/Anmolkankarwal">
+    <img src="https://img.shields.io/badge/GitHub-View%20Profile-181717?style=for-the-badge&logo=github" alt="GitHub Profile"/>
+  </a>
+  <a href="https://github.com/Anmolkankarwal/OpsFlow">
+    <img src="https://img.shields.io/badge/Project-OpsFlow-6C5CE7?style=for-the-badge&logo=github" alt="OpsFlow Repository"/>
+  </a>
+</p>
+
+<p align="center">
+  ⭐ If you find OpsFlow interesting, consider starring the repository!
+</p>
+
+
