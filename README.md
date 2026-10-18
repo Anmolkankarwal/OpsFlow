@@ -453,20 +453,30 @@ These limitations are documented intentionally to make the current scope and fut
 
 ---
 
-## 🎬 Suggested Demo — 3 to 5 Minutes
+## 🎬 OpsFlow — Project Demo
 
-Want to understand OpsFlow quickly? Follow this walkthrough:
+Watch the complete walkthrough of OpsFlow, demonstrating its core features, role-based access control, workflow management, and reliability mechanisms.
 
-1. 👑 **Sign in as Admin** and explore the dashboard and filters.
-2. ➕ **Create a work item** and explain how `Idempotency-Key` helps with retries.
-3. 🧾 **Open the activity timeline** and add a comment.
-4. 👤 **Claim an unassigned task as Member** and explain the atomic database update.
-5. ⚡ **Demonstrate a stale update** and inspect the `409 Conflict` response.
-6. 🛡️ **Try a forbidden Viewer action** and show the API authorization behavior.
-7. 🧭 **Approve a workflow transition as Lead** and explain the role restrictions.
-8. 🔔 **Explain the outbox worker, automated tests, trade-offs, and known limitations.**
+<p align="center">
+  <a href="https://youtu.be/1qZ9Twzbo4c">
+    <img src="https://img.youtube.com/vi/1qZ9Twzbo4c/maxresdefault.jpg" alt="OpsFlow Project Demo" width="800"/>
+  </a>
+</p>
 
----
+<p align="center">
+  ▶️ <a href="https://youtu.be/1qZ9Twzbo4c"><b>Watch the Full Demo on YouTube</b></a>
+</p>
+
+### 📌 Demo Walkthrough
+
+1. 👑 **Admin Dashboard:** Explore the dashboard and filters.
+2. ➕ **Work Item Creation:** Demonstrate `Idempotency-Key` and safe retries.
+3. 🧾 **Activity Timeline:** View activity history and add a comment.
+4. 👤 **Member Workflow:** Claim a task and explain the atomic database update.
+5. ⚡ **Conflict Handling:** Demonstrate a stale update and `409 Conflict`.
+6. 🛡️ **Authorization:** Test a forbidden Viewer action.
+7. 🧭 **Lead Approval:** Demonstrate workflow transitions and role restrictions.
+8. 🔔 **System Reliability:** Explain the outbox worker, automated tests, trade-offs, and known limitations.
 
 ## 🚧 Future Improvements
 
