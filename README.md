@@ -490,6 +490,11 @@ Potential next steps include:
 - 🔄 Multi-worker outbox processing with safe job claiming and recovery.
 
 ---
+### Security Improvements
+
+Security hardening is currently in progress. Ongoing work includes strengthening production configuration safeguards, restricting development-only endpoints in production, and improving automated security-related tests.
+
+These changes are being reviewed separately and will be merged after verification.
 
 ## 👨‍💻 Project Context
 
