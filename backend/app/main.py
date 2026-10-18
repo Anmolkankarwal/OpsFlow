@@ -139,8 +139,17 @@ class ActivityOut(BaseModel): id: int; item_id: int; actor_id: int; action: str;
 class CommentOut(BaseModel): id: int; item_id: int; author_id: int; body: str; created_at: datetime; model_config = ConfigDict(from_attributes=True)
 
 app = FastAPI(title="OpsFlow API", version="1.0.0", description="Team operations and incident-resolution platform")
-app.add_middleware(CORSMiddleware, allow_origins=os.getenv("CORS_ORIGINS", "http://localhost:5173").split(","), allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",
+        "https://ops-flow-zeta-dusky.vercel.app",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 def get_db() -> Generator[Session, None, None]:
     db = SessionLocal()
     try: yield db
