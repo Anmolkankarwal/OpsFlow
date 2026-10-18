@@ -46,6 +46,50 @@
 
 ---
 
+---
+
+## 🌐 Live Demo & Quick Links
+
+<p align="center">
+  <a href="https://ops-flow-zeta-dusky.vercel.app">
+    <img src="https://img.shields.io/badge/🚀_Launch_Live_Demo-Visit_OpsFlow-6C5CE7?style=for-the-badge" alt="Launch OpsFlow Live Demo"/>
+  </a>
+  <a href="https://github.com/Anmolkankarwal/OpsFlow">
+    <img src="https://img.shields.io/badge/💻_Source_Code-GitHub-181717?style=for-the-badge&logo=github" alt="GitHub Repository"/>
+  </a>
+  <a href="https://opsflow-api-n5lj.onrender.com/docs">
+    <img src="https://img.shields.io/badge/📚_API_Docs-Swagger-85EA2D?style=for-the-badge&logo=swagger&logoColor=black" alt="API Documentation"/>
+  </a>
+</p>
+
+<p align="center">
+  <b>✨ Explore. Create. Assign. Track. Resolve.</b><br/>
+  Experience a full-stack team operations platform built with React, FastAPI, PostgreSQL, and Docker.
+</p>
+
+### 🎮 Explore OpsFlow
+
+| 🔍 Feature | ✨ What You Can Explore |
+|---|---|
+| 📊 Dashboard | View operational work and priorities |
+| 📋 Work Items | Create, assign, search, and update tasks |
+| 🛡️ Role-Based Access | Explore Viewer, Member, Lead, and Admin permissions |
+| 🔄 Workflow | Experience controlled status transitions and approvals |
+| 🧾 Activity History | Track task updates and comments |
+| ⚡ Reliability | Explore concurrency control and idempotent requests |
+
+### 🔗 Service Status & Resources
+
+- 🖥️ **Live Application:** [Open OpsFlow](https://ops-flow-zeta-dusky.vercel.app)
+- ⚙️ **Backend API:** [Open API Service](https://opsflow-api-n5lj.onrender.com)
+- ❤️ **Health Check:** [Check API Health](https://opsflow-api-n5lj.onrender.com/health)
+- 📖 **Interactive API Documentation:** [Explore Swagger UI](https://opsflow-api-n5lj.onrender.com/docs)
+- 📦 **Source Code:** [View on GitHub](https://github.com/Anmolkankarwal/OpsFlow)
+
+> ⚠️ **Demo Notice:** OpsFlow is a working MVP for demonstration and evaluation. Some features have documented limitations. Do not enter sensitive or personal information.
+
+---
+
 ## 🎯 Why OpsFlow?
 
 As organizations grow, operational work often becomes scattered across chats, emails, spreadsheets, and informal conversations.
